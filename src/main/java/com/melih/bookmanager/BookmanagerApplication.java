@@ -3,7 +3,7 @@ package com.melih.bookmanager;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import static models.Book.generateDummyBooks;
+import static model.Book.generateDummyBooks;
 
 @SpringBootApplication
 public class BookmanagerApplication {
