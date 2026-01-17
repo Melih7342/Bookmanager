@@ -21,6 +21,7 @@ public class BookService {
         return books;
     }
     public boolean addBook(Book book) {
+        // Matching is based only on isbn, because of sufficient identification
         boolean exists = this.books.stream().anyMatch(b -> b.getISBN().equals(book.getISBN()));
 
         if (exists) {
