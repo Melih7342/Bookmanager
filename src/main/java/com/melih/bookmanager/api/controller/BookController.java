@@ -53,4 +53,18 @@ public class BookController {
                 .body(String.format("Successfully added %d books", books.size()));
     }
 
+    // Delete a specific book by isbn
+    @DeleteMapping("/{isbn}")
+    public ResponseEntity<String> deleteBook(@PathVariable String isbn) {
+        bookService.removeBook(isbn);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/bulk")
+    public ResponseEntity<String> deleteBooksBulk(@RequestBody List<String> isbn) {
+        bookService.removeBooksBulk(isbn);
+        return ResponseEntity.ok(String.format("Successfully deleted %d books", isbn.size()));
+    }
+
+
 }

@@ -4,7 +4,7 @@ import com.melih.bookmanager.api.model.Book;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
@@ -47,20 +47,28 @@ public class BookService {
         books.add(book);
     }
 
+    @Transactional // Annotation for future DB use
     public void addBooksBulk(List<Book> books) {
         for (Book book : books) {
             addBook(book);
         }
     }
 
-    public boolean removeBook(Book book) {
-        boolean exists = this.books.stream().anyMatch(b -> b.getISBN().equals(book.getISBN()));
-        if (!exists) {
-            return false;
+    public void removeBook(String isbn) {
+        Optional<Book> bookToDelete = this.books.stream().filter(b -> b.getISBN().equals(isbn)).findFirst();
+        if(bookToDelete.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
         }
-        books.remove(book);
-        return true;
+        books.remove(bookToDelete.get());
     }
+
+    @Transactional
+    public void removeBooksBulk(List<String> isbnList) {
+        for (String isbn : isbnList) {
+            removeBook(isbn);
+        }
+    }
+
     public boolean updateBook(Book book) {
         Optional<Book> foundBook = this.books.stream().filter(b -> b.getISBN().equals(book.getISBN()))
                 .findFirst();
