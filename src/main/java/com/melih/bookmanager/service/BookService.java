@@ -48,11 +48,18 @@ public class BookService {
     @Transactional // Annotation for future DB use
     public void addBooksBulk(List<Book> books) {
         for (Book book : books) {
+            if(existsByISBN(book.getISBN())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Book already exists");
+            }
+        }
+
+        for (Book book : books) {
             addBook(book);
         }
     }
 
     public void removeBook(String isbn) {
+        // Would be more efficient with HashTable
         Optional<Book> bookToDelete = this.books.stream().filter(b -> b.getISBN().equals(isbn)).findFirst();
         if(bookToDelete.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
@@ -62,6 +69,11 @@ public class BookService {
 
     @Transactional
     public void removeBooksBulk(List<String> isbnList) {
+        for (String isbn : isbnList) {
+            if (!existsByISBN(isbn)) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book with ISBN " + isbn + " not found. No books were deleted.");
+            }
+        }
         for (String isbn : isbnList) {
             removeBook(isbn);
         }

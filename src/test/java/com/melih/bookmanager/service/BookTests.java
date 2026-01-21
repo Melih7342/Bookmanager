@@ -142,7 +142,7 @@ public class BookTests {
         // WHEN & THEN
         assertThatThrownBy(() -> bookService.addBooksBulk(toBeAddedBooks))
                 .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Book already exists")
+                .hasMessageContaining("exists")
                 .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
                 .isEqualTo(HttpStatus.CONFLICT);
     }
@@ -151,7 +151,7 @@ public class BookTests {
         // GIVEN
         Book existingBook = new Book("978-3-16-148410-0", "Der Wind am Ende der Welt", "Franz Kafka", 300);
         Book nonExistingBook = new Book("888", "Haruki Murakami", "Kafka on the shore", 987);
-        List<Book> toBeAddedBooks = new ArrayList<>(List.of(existingBook, nonExistingBook));
+        List<Book> toBeAddedBooks = new ArrayList<>(List.of(nonExistingBook, existingBook));
         int initialSize = bookService.getAllBooks().size();
 
         // WHEN & THEN: Catch the exception
@@ -161,6 +161,102 @@ public class BookTests {
         // THEN: Check if no books were added
         List<Book> booksAfterFailedAction = bookService.getAllBooks();
         assertThat(booksAfterFailedAction).hasSize(initialSize);
+    }
+
+    @Test
+    void givenExistingIsbn_whenRemoveBook_thenBookIsRemoved() {
+        // GIVEN
+        String existingIsbn = "978-3-16-148410-0";
+        int initialSize = bookService.getAllBooks().size();
+
+        // WHEN
+        bookService.removeBook(existingIsbn);
+        List<Book> books = bookService.getAllBooks();
+
+        // THEN
+        assertThat(books)
+                .noneMatch(i -> i.getISBN().equals(existingIsbn))
+                .hasSize(initialSize - 1);
+    }
+
+    @Test
+    void givenNotExistingIsbn_whenRemoveBook_thenExceptionIsThrown() {
+        // GIVEN
+        String nonExistingIsbn = "999";
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> bookService.removeBook(nonExistingIsbn))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Book not found")
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void givenNotExistingIsbn_whenRemoveBook_thenNoBookIsRemoved() {
+        // GIVEN
+        String nonExistingIsbn = "999";
+        int initialSize = bookService.getAllBooks().size();
+
+        // WHEN & THEN
+        // Catch the exception, so we can check, if the initial size hasn't changed
+       assertThatThrownBy(() -> bookService.removeBook(nonExistingIsbn))
+               .isInstanceOf(ResponseStatusException.class);
+
+       List<Book> books = bookService.getAllBooks();
+
+       assertThat(books).hasSize(initialSize);
+    }
+
+    @Test
+    void givenBulkOfExistingIsbns_whenRemoveBulk_thenBulkIsRemoved() {
+        // GIVEN
+        List<String> existingIsbns = new ArrayList<>(List.of("978-3-16-148410-0", "978-0-545-01022-1"));
+        int initialSize = bookService.getAllBooks().size();
+
+        // WHEN
+        bookService.removeBooksBulk(existingIsbns);
+        List<Book> booksAfterRemoving = bookService.getAllBooks();
+
+        // THEN
+        assertThat(booksAfterRemoving)
+                .extracting(Book::getISBN)
+                .doesNotContainAnyElementsOf(existingIsbns)
+                .hasSize(initialSize - existingIsbns.size());
+    }
+
+    @Test
+    void givenNoneExistingIsbn_whenRemoveBulk_thenNoBookIsRemoved() {
+        // GIVEN
+        String existingIsbn = "978-3-16-148410-0";
+        String nonExistingIsbn = "999";
+        List<String> mixedIsbns = new ArrayList<>(List.of(existingIsbn, nonExistingIsbn));
+        int initialSize = bookService.getAllBooks().size();
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> bookService.removeBooksBulk(mixedIsbns))
+                .isInstanceOf(ResponseStatusException.class);
+
+        List<Book> booksAfterRemoving = bookService.getAllBooks();
+
+        assertThat(booksAfterRemoving).hasSize(initialSize);
+    }
+
+
+
+    @Test
+    void givenNoneExistingIsbn_whenRemoveBulk_thenExceptionIsThrown() {
+        // GIVEN
+        String existingIsbn = "978-3-16-148410-0";
+        String nonExistingIsbn = "999";
+        List<String> isbns = new ArrayList<>(List.of(existingIsbn, nonExistingIsbn));
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> bookService.removeBooksBulk(isbns))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("not found")
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
     }
 
 }
