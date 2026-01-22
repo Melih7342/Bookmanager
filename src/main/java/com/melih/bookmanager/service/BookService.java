@@ -1,10 +1,10 @@
 package com.melih.bookmanager.service;
 
 import com.melih.bookmanager.api.model.Book;
+import com.melih.bookmanager.exception.BookNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class BookService {
 
     public void addBook(Book book) {
         if(existsByISBN(book.getISBN())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Book already exists");
+            throw new BookNotFoundException(book.getISBN());
         }
         books.add(book);
     }
@@ -49,7 +49,7 @@ public class BookService {
     public void addBooksBulk(List<Book> books) {
         for (Book book : books) {
             if(existsByISBN(book.getISBN())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Book already exists");
+                throw new BookNotFoundException(book.getISBN());
             }
         }
 
@@ -62,7 +62,7 @@ public class BookService {
         // Would be more efficient with HashTable
         Optional<Book> bookToDelete = this.books.stream().filter(b -> b.getISBN().equals(isbn)).findFirst();
         if(bookToDelete.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
+            throw new BookNotFoundException(isbn);
         }
         books.remove(bookToDelete.get());
     }
@@ -71,7 +71,7 @@ public class BookService {
     public void removeBooksBulk(List<String> isbnList) {
         for (String isbn : isbnList) {
             if (!existsByISBN(isbn)) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book with ISBN " + isbn + " not found. No books were deleted.");
+                throw new BookNotFoundException(isbn);
             }
         }
         for (String isbn : isbnList) {
@@ -83,7 +83,7 @@ public class BookService {
         Optional<Book> foundBook = this.books.stream().filter(b -> b.getISBN().equals(book.getISBN()))
                 .findFirst();
         if (foundBook.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
+            throw new BookNotFoundException(book.getISBN());
         }
         Book bookToUpdate = foundBook.get();
         bookToUpdate.setTitle(book.getTitle());
@@ -93,6 +93,11 @@ public class BookService {
 
     @Transactional
     public void updateBooksBulk(List<Book> books) {
+        for (Book book : books) {
+            if (!existsByISBN(book.getISBN())) {
+                throw new BookNotFoundException(book.getISBN());
+            }
+        }
         for (Book book : books) {
             updateBook(book);
         }

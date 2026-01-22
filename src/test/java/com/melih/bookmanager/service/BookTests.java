@@ -1,6 +1,7 @@
 package com.melih.bookmanager.service;
 
 import com.melih.bookmanager.api.model.Book;
+import static com.melih.bookmanager.service.BookService.generateDummyBooks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -242,8 +243,6 @@ public class BookTests {
         assertThat(booksAfterRemoving).hasSize(initialSize);
     }
 
-
-
     @Test
     void givenNoneExistingIsbn_whenRemoveBulk_thenExceptionIsThrown() {
         // GIVEN
@@ -259,4 +258,126 @@ public class BookTests {
                 .isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void givenBookWithExistingIsbn_whenUpdateBook_thenBookIsUpdated() {
+        // GIVEN
+        Book updateData = new Book("978-3-16-148410-0", "New title", "New author", 240);
+
+        // WHEN
+        bookService.updateBook(updateData);
+        Book result = bookService.getBookByISBN(updateData.getISBN()).get();
+
+        // THEN
+        assertThat(result).usingRecursiveComparison().isEqualTo(updateData);
+    }
+
+    @Test
+    void givenBookWithExistingIsbn_whenUpdateBook_thenSizeDoesNotChange() {
+        // GIVEN
+        Book updateData = new Book("978-3-16-148410-0", "New title", "New author", 240);
+        int initialSize = bookService.getAllBooks().size();
+
+        // WHEN
+        bookService.updateBook(updateData);
+        List<Book> books = bookService.getAllBooks();
+
+        // THEN
+        assertThat(books).hasSize(initialSize);
+    }
+
+    @Test
+    void givenBookWithNonExistingIsbn_whenUpdateBook_thenExceptionIsThrown() {
+        // GIVEN
+        Book updateData = new Book("999", "New title", "New author", 123);
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> bookService.updateBook(updateData))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("not found")
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void givenBookWithNonExistingIsbn_whenUpdateBook_thenSizeDoesNotChange() {
+        // GIVEN
+        Book updateData = new Book("999", "New title", "New author", 123);
+        int initialSize = bookService.getAllBooks().size();
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> bookService.updateBook(updateData))
+                .isInstanceOf(ResponseStatusException.class);
+
+        List<Book> books = bookService.getAllBooks();
+        assertThat(books).hasSize(initialSize);
+    }
+
+    @Test
+    void givenBooksWithExistingIsbns_whenUpdateBulk_thenBookIsUpdated() {
+        // GIVEN
+        List<Book> updateData = new ArrayList<>(List.of(
+                new Book("978-3-16-148410-0", "New Title", "New Author", 301),
+                new Book("978-0-545-01022-1", "New Title", "New Author", 351)
+        ));
+
+        // WHEN
+        bookService.updateBooksBulk(updateData);
+        Book resultOne = bookService.getBookByISBN(updateData.get(0).getISBN()).get();
+        Book resultTwo = bookService.getBookByISBN(updateData.get(1).getISBN()).get();
+
+        // THEN
+        assertThat(resultOne).usingRecursiveComparison().isEqualTo(updateData.get(0));
+        assertThat(resultTwo).usingRecursiveComparison().isEqualTo(updateData.get(1));
+    }
+
+    @Test
+    void givenBooksWithOneNonExistingIsbn_whenUpdateBulk_thenExceptionIsThrown() {
+        // GIVEN
+        List<Book> updateData = new ArrayList<>(List.of(
+                new Book("978-3-16-148410-0", "New Title", "New Author", 301),
+                new Book("999", "New Title", "New Author", 351)
+        ));
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> bookService.updateBooksBulk(updateData))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("not found")
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void givenBooksWithOneNonExistingIsbn_whenUpdateBulk_thenNoBooksAreUpdated() {
+        // GIVEN
+        String existingIsbn = "978-3-16-148410-0";
+        Book originalBook = bookService.getBookByISBN(existingIsbn).get();
+
+        List<Book> updateData = new ArrayList<>(List.of(
+                new Book(existingIsbn, "New Title", "New Author", 301),
+                new Book("999", "I don't exist", "Someone", 100)
+        ));
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> bookService.updateBooksBulk(updateData))
+                .isInstanceOf(ResponseStatusException.class);
+
+        Optional<Book> resultOne = bookService.getBookByISBN(existingIsbn);
+        assertThat(resultOne).isPresent();
+        assertThat(resultOne.get()).usingRecursiveComparison().isEqualTo(originalBook);
+
+        Optional<Book> resultTwo = bookService.getBookByISBN("999");
+        assertThat(resultTwo).isEmpty();
+    }
+
+    @Test
+    void givenEmptyBookList_whenGenerateDummies_then10BooksAreGenerated() {
+        // GIVEN
+        List<Book> books;
+
+        // WHEN
+        books = generateDummyBooks();
+
+        // THEN
+        assertThat(books).hasSize(10);
+    }
 }
