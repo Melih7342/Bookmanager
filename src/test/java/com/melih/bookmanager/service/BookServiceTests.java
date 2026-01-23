@@ -5,21 +5,24 @@ import static com.melih.bookmanager.service.BookService.generateDummyBooks;
 
 import com.melih.bookmanager.exception.BookAlreadyExistsException;
 import com.melih.bookmanager.exception.BookNotFoundException;
+import com.melih.bookmanager.repository.book.InMemoryBookRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class BookTests {
+public class BookServiceTests {
     private BookService bookService;
+    private InMemoryBookRepository bookRepository;
 
     @BeforeEach
     void setUp() {
+        // Initialize repository and service
+        this.bookRepository = new InMemoryBookRepository();
         // Initial books for test cases
         List<Book> books = new ArrayList<>(List.of(
                 new Book("978-3-16-148410-0", "Der Wind am Ende der Welt", "Franz Kafka", 300),
@@ -28,7 +31,10 @@ public class BookTests {
                 new Book("978-3-8273-1542-8", "Die mechanische Rose: Ein Steampunk-Abenteuer", "Albert Camus", 508),
                 new Book("978-0-306-40615-7", "Letzter Halt: Wien Hauptbahnhof", "Friedrich Nietzsche", 958)
         ));
-        this.bookService = new BookService(books);
+        for (Book book : books) {
+            this.bookRepository.save(book);
+        }
+        this.bookService = new BookService(bookRepository);
     }
 
     @Test
@@ -37,27 +43,21 @@ public class BookTests {
         String isbn = "978-3-16-148410-0";
 
         // WHEN
-        Optional<Book> result = bookService.getBookByISBN(isbn);
+        Book result = bookService.getBookByIsbn(isbn);
 
         // THEN
-        assertThat(result.isPresent()).isTrue();
-
         Book bookToFind = new Book("978-3-16-148410-0", "Der Wind am Ende der Welt", "Franz Kafka", 300);
-        Book foundBook = result.get();
-
-        assertThat(bookToFind).isEqualTo(foundBook);
+        assertThat(bookToFind).isEqualTo(result);
     }
 
     @Test
-    void givenNonExistentIsbn_whenGetBookByISBN_thenReturnsEmptyOptional() {
+    void givenNonExistentIsbn_whenGetBookByISBN_thenThrowsException() {
         // GIVEN
-        String nonExistentIsbn = "999-3-16-148410-5";
+        String nonExistentIsbn = "999";
 
-        // WHEN
-        Optional<Book> result = bookService.getBookByISBN(nonExistentIsbn);
-
-        // THEN
-        assertThat(result.isPresent()).isFalse();
+        // WHEN & THEN
+        assertThatThrownBy(() -> bookService.getBookByIsbn(nonExistentIsbn))
+                .isInstanceOf(BookNotFoundException.class);
     }
 
     @Test
@@ -66,7 +66,7 @@ public class BookTests {
         String existingIsbn = "978-3-16-148410-0";
 
         // WHEN
-        boolean exists = bookService.existsByISBN(existingIsbn);
+        boolean exists = bookRepository.existsByISBN(existingIsbn);
 
         // THEN
         assertThat(exists).isTrue();
@@ -78,7 +78,7 @@ public class BookTests {
         String nonExistingIsbn = "999-3-16-148410-5";
 
         // WHEN
-        boolean exists = bookService.existsByISBN(nonExistingIsbn);
+        boolean exists = bookRepository.existsByISBN(nonExistingIsbn);
 
         // THEN
         assertThat(exists).isFalse();
@@ -254,7 +254,7 @@ public class BookTests {
 
         // WHEN
         bookService.updateBook(updateData);
-        Book result = bookService.getBookByISBN(updateData.getISBN()).get();
+        Book result = bookService.getBookByIsbn(updateData.getISBN());
 
         // THEN
         assertThat(result).usingRecursiveComparison().isEqualTo(updateData);
@@ -308,8 +308,8 @@ public class BookTests {
 
         // WHEN
         bookService.updateBooksBulk(updateData);
-        Book resultOne = bookService.getBookByISBN(updateData.get(0).getISBN()).get();
-        Book resultTwo = bookService.getBookByISBN(updateData.get(1).getISBN()).get();
+        Book resultOne = bookService.getBookByIsbn(updateData.get(0).getISBN());
+        Book resultTwo = bookService.getBookByIsbn(updateData.get(1).getISBN());
 
         // THEN
         assertThat(resultOne).usingRecursiveComparison().isEqualTo(updateData.get(0));
@@ -330,10 +330,10 @@ public class BookTests {
     }
 
     @Test
-    void givenBooksWithOneNonExistingIsbn_whenUpdateBulk_thenNoBooksAreUpdated() {
+    void givenBooksWithOneNonExistingIsbn_whenUpdateBulk_thenBookAreUpdated() {
         // GIVEN
         String existingIsbn = "978-3-16-148410-0";
-        Book originalBook = bookService.getBookByISBN(existingIsbn).get();
+        Book originalBook = bookService.getBookByIsbn(existingIsbn);
 
         List<Book> updateData = new ArrayList<>(List.of(
                 new Book(existingIsbn, "New Title", "New Author", 301),
@@ -344,12 +344,8 @@ public class BookTests {
         assertThatThrownBy(() -> bookService.updateBooksBulk(updateData))
                 .isInstanceOf(BookNotFoundException.class);
 
-        Optional<Book> resultOne = bookService.getBookByISBN(existingIsbn);
-        assertThat(resultOne).isPresent();
-        assertThat(resultOne.get()).usingRecursiveComparison().isEqualTo(originalBook);
-
-        Optional<Book> resultTwo = bookService.getBookByISBN("999");
-        assertThat(resultTwo).isEmpty();
+        Book resultOne = bookService.getBookByIsbn(existingIsbn);
+        assertThat(resultOne).usingRecursiveComparison().isEqualTo(originalBook);
     }
 
     @Test

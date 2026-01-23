@@ -13,10 +13,6 @@ public class InMemoryBookRepository implements BookRepository {
     public List<Book> findAll() {
         return new ArrayList<>(books.values());
     }
-    @Override
-    public Optional<Book> findByIsbn(String isbn) {
-        return Optional.ofNullable(books.get(isbn));
-    }
 
     @Override
     public void save(Book book) {
@@ -28,7 +24,7 @@ public class InMemoryBookRepository implements BookRepository {
         books.remove(isbn);
     }
 
-    public Optional<Book> getBookByISBN(String isbn) {
+    public Optional<Book> findByIsbn(String isbn) {
         return Optional.ofNullable(books.get(isbn));
     }
 

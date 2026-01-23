@@ -1,22 +1,23 @@
 package com.melih.bookmanager.api.controller;
 
 import com.melih.bookmanager.api.model.Book;
+import com.melih.bookmanager.repository.book.InMemoryBookRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.melih.bookmanager.service.BookService;
 import java.util.List;
-import static com.melih.bookmanager.service.BookService.generateDummyBooks;
 
 @RestController
 @RequestMapping("/books")
 public class BookController {
-    private BookService bookService;
+    private final BookService bookService;
+    private InMemoryBookRepository bookRepository;
 
     @Autowired
-    public BookController(BookService bookService) {
-        this.bookService = new BookService(generateDummyBooks()); // Initialising with dummy books for test cases
+    public BookController(InMemoryBookRepository bookRepository) {
+        this.bookService = new BookService(bookRepository); // Initialising with dummy books for test cases
         // this.bookService = bookService  --> final constructor
     }
 
@@ -33,10 +34,8 @@ public class BookController {
 
     // Get a specific book with its ISBN
     @GetMapping("/{isbn}")
-    public ResponseEntity<Book> getBookByISBN(@PathVariable String isbn) {
-        return bookService.getBookByISBN(isbn)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public Book getBookByISBN(@PathVariable String isbn) {
+        return bookService.getBookByIsbn(isbn);
     }
 
     // Add a new Book

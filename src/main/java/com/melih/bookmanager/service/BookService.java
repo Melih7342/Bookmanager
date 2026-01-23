@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -23,6 +24,14 @@ public class BookService {
 
     public List<Book> getAllBooks() {
         return bookRepository.findAll();
+    }
+
+    public Book getBookByIsbn(String isbn) {
+        Optional<Book> book = bookRepository.findByIsbn(isbn);
+        if (book.isPresent()) {
+            return book.get();
+        }
+        throw new BookNotFoundException(isbn);
     }
 
     public void addBook(Book book) {
@@ -116,14 +125,14 @@ public class BookService {
         };
         int[] pages = {300, 350, 402, 508, 117, 958};
 
-        for (int i = 0; i < titles.length; i++) {
-            String randomISBN = ISBNs[ThreadLocalRandom.current().nextInt(ISBNs.length)];
+        for (int i = 0; i < ISBNs.length; i++) {
+            String uniqueISBN = ISBNs[i];
+
             String randomTitle = titles[ThreadLocalRandom.current().nextInt(titles.length)];
             String randomAuthor = authors[ThreadLocalRandom.current().nextInt(authors.length)];
             int randomPages = pages[ThreadLocalRandom.current().nextInt(pages.length)];
 
-            Book book = new Book(randomISBN, randomTitle, randomAuthor, randomPages);
-            books.add(book);
+            books.add(new Book(uniqueISBN, randomTitle, randomAuthor, randomPages));
         }
         return books;
     }
