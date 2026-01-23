@@ -3,7 +3,9 @@ package com.melih.bookmanager.service;
 import com.melih.bookmanager.api.model.Book;
 import com.melih.bookmanager.exception.BookAlreadyExistsException;
 import com.melih.bookmanager.exception.BookNotFoundException;
-import org.springframework.http.HttpStatus;
+import com.melih.bookmanager.repository.book.BookRepository;
+import com.melih.bookmanager.repository.book.InMemoryBookRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,15 +15,16 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class BookService {
-    private List<Book> books;
+    private final InMemoryBookRepository bookRepository;
 
+    @Autowired
     // Constructor with instant enrichment
-    public BookService(List<Book> books) {
-        this.books = books;
+    public BookService(InMemoryBookRepository bookRepository) {
+        this.bookRepository = bookRepository;
     }
 
     public List<Book> getAllBooks() {
-        return books;
+        return bookRepository.findAll();
     }
 
     public Optional<Book> getBookByISBN(String isbn) {
