@@ -3,14 +3,12 @@ package com.melih.bookmanager.service;
 import com.melih.bookmanager.api.model.Book;
 import com.melih.bookmanager.exception.BookAlreadyExistsException;
 import com.melih.bookmanager.exception.BookNotFoundException;
-import com.melih.bookmanager.repository.book.BookRepository;
 import com.melih.bookmanager.repository.book.InMemoryBookRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -27,79 +25,58 @@ public class BookService {
         return bookRepository.findAll();
     }
 
-    public Optional<Book> getBookByISBN(String isbn) {
-        Optional optional = Optional.empty();
-        for(Book book : books) {
-            if(book.getISBN().equals(isbn)) {
-                optional = Optional.of(book);
-            }
-        }
-        return optional;
-    }
-
-    public boolean existsByISBN(String isbn) {
-        return this.books.stream().anyMatch(b -> b.getISBN().equals(isbn));
-    }
-
     public void addBook(Book book) {
-        if(existsByISBN(book.getISBN())) {
+        if(bookRepository.existsByISBN(book.getISBN())) {
             throw new BookAlreadyExistsException(book.getISBN());
         }
-        books.add(book);
+        bookRepository.save(book);
     }
 
     public void addBooksBulk(List<Book> books) {
         for (Book book : books) {
-            if(existsByISBN(book.getISBN())) {
+            if(bookRepository.existsByISBN(book.getISBN())) {
                 throw new BookAlreadyExistsException(book.getISBN());
             }
         }
 
         for (Book book : books) {
-            addBook(book);
+            bookRepository.save(book);
         }
     }
 
     public void removeBook(String isbn) {
-        // Would be more efficient with HashTable
-        Optional<Book> bookToDelete = this.books.stream().filter(b -> b.getISBN().equals(isbn)).findFirst();
-        if(bookToDelete.isEmpty()) {
+        if(bookRepository.existsByISBN(isbn)) {
             throw new BookNotFoundException(isbn);
         }
-        books.remove(bookToDelete.get());
+        bookRepository.delete(isbn);
     }
 
     public void removeBooksBulk(List<String> isbnList) {
         for (String isbn : isbnList) {
-            if (!existsByISBN(isbn)) {
+            if (bookRepository.existsByISBN(isbn)) {
                 throw new BookNotFoundException(isbn);
             }
         }
         for (String isbn : isbnList) {
-            removeBook(isbn);
+            bookRepository.delete(isbn);
         }
     }
 
     public void updateBook(Book book) {
-        Optional<Book> foundBook = this.books.stream().filter(b -> b.getISBN().equals(book.getISBN()))
-                .findFirst();
-        if (foundBook.isEmpty()) {
+        if (!bookRepository.existsByISBN(book.getISBN())) {
             throw new BookNotFoundException(book.getISBN());
         }
-        Book bookToUpdate = foundBook.get();
-        bookToUpdate.setTitle(book.getTitle());
-        bookToUpdate.setAuthor(book.getAuthor());
-        bookToUpdate.setPages(book.getPages());
+        bookRepository.save(book);
     }
 
     public void updateBooksBulk(List<Book> books) {
         for (Book book : books) {
-            if (!existsByISBN(book.getISBN())) {
+            if (!bookRepository.existsByISBN(book.getISBN())) {
                 throw new BookNotFoundException(book.getISBN());
             }
         }
         for (Book book : books) {
-            updateBook(book);
+            bookRepository.save(book);
         }
     }
 
