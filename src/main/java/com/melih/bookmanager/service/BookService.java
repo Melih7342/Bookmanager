@@ -54,7 +54,7 @@ public class BookService {
     }
 
     public void removeBook(String isbn) {
-        if(bookRepository.existsByISBN(isbn)) {
+        if(!bookRepository.existsByISBN(isbn)) {
             throw new BookNotFoundException(isbn);
         }
         bookRepository.delete(isbn);
@@ -62,7 +62,7 @@ public class BookService {
 
     public void removeBooksBulk(List<String> isbnList) {
         for (String isbn : isbnList) {
-            if (bookRepository.existsByISBN(isbn)) {
+            if (!bookRepository.existsByISBN(isbn)) {
                 throw new BookNotFoundException(isbn);
             }
         }
