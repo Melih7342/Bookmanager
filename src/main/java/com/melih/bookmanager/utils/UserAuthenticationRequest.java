@@ -1,8 +1,8 @@
 package com.melih.bookmanager.utils;
 
-import lombok.Getter;
+import lombok.Data;
 
-@Getter
+@Data
 public class UserAuthenticationRequest {
     private String username;
     private String password;
