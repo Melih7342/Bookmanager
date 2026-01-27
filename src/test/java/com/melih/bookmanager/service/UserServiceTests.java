@@ -212,6 +212,45 @@ public class UserServiceTests {
         // WHEN & THEN
         assertThatThrownBy(() -> userService.deactivateAccount(username, password))
                 .isInstanceOf(BadCredentialsException.class);
+    }
 
+    @Test
+    void givenValidCredentials_whenChangePassword_thenPasswordChanged() {
+        // GIVEN
+        String username = "jeff";
+        String oldPassword = "Spring123";
+        String newPassword = "JeffsNewPassword";
+
+        // WHEN
+        userService.changePassword(username, oldPassword, newPassword);
+
+        // THEN
+        User jeff = userRepository.findByUsername("jeff")
+                .orElseThrow(() -> new AssertionError("User should exist in repository"));
+        assertThat(passwordEncoder.matches(newPassword, jeff.getPassword()));
+    }
+
+    @Test
+    void givenNonExistingUsername_whenChangePassword_thenThrowBadCredentialsException() {
+        // GIVEN
+        String username = "alexandra12";
+        String oldPassword = "Spring123";
+        String newPassword = "JokerArkham1";
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> userService.changePassword(username, oldPassword, newPassword))
+                .isInstanceOf(BadCredentialsException.class);
+    }
+
+    @Test
+    void givenFalsePassword_whenChangePassword_thenThrowBadCredentialsException() {
+        // GIVEN
+        String username = "jeff";
+        String oldPassword = "JokerArkham1";
+        String newPassword = "JeffsNewPassword";
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> userService.changePassword(username, oldPassword, newPassword))
+                .isInstanceOf(BadCredentialsException.class);
     }
 }
