@@ -2,24 +2,22 @@ package com.melih.bookmanager.api.controller;
 
 import com.melih.bookmanager.api.model.Book;
 import com.melih.bookmanager.repository.book.InMemoryBookRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.melih.bookmanager.service.BookService;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/books")
 public class BookController {
     private final BookService bookService;
-    private InMemoryBookRepository bookRepository;
-
-    @Autowired
-    public BookController(InMemoryBookRepository bookRepository) {
-        this.bookService = new BookService(bookRepository); // Initialising with dummy books for test cases
-        // this.bookService = bookService  --> final constructor
-    }
 
     // Get all books
     @GetMapping
@@ -42,6 +40,11 @@ public class BookController {
     @PostMapping
     public ResponseEntity<Book> createBook(@RequestBody Book newBook) {
         bookService.addBook(newBook);
+        ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{isbn}")
+                .buildAndExpand(newBook.getISBN())
+                .toUri();
         return ResponseEntity.status(HttpStatus.CREATED).body(newBook);
     }
 

@@ -5,6 +5,7 @@ import com.melih.bookmanager.service.UserService;
 import com.melih.bookmanager.utils.UserChangePasswordRequest;
 import com.melih.bookmanager.utils.UserResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.melih.bookmanager.utils.UserAuthenticationRequest;
@@ -21,12 +22,12 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody UserAuthenticationRequest request) {
         userService.register(request.getUsername(), request.getPassword());
-        URI location = ServletUriComponentsBuilder
+        ServletUriComponentsBuilder
                 .fromCurrentRequest()
                 .path("/{username}")
                 .buildAndExpand(request.getUsername())
                 .toUri();
-        return ResponseEntity.created(location).body("User registered successfully");
+        return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
     }
 
     @GetMapping("/{username}")

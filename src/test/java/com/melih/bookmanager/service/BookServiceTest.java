@@ -15,7 +15,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class BookServiceTests {
+public class BookServiceTest {
     private BookService bookService;
     private InMemoryBookRepository bookRepository;
 

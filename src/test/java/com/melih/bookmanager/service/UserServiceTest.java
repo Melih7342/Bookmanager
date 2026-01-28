@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
-public class UserServiceTests {
+public class UserServiceTest {
     private InMemoryUserRepository userRepository;
     private PasswordEncoder passwordEncoder;
     private UserService userService;

@@ -40,4 +40,8 @@ public class InMemoryBookRepository implements BookRepository {
     public boolean existsByISBN(String isbn) {
         return books.containsKey(isbn);
     }
+
+    public void clear() {
+        this.books.clear();
+    }
 }
