@@ -4,7 +4,6 @@ import com.melih.bookmanager.api.model.Book;
 import com.melih.bookmanager.api.model.User;
 import com.melih.bookmanager.exception.User.BadCredentialsException;
 import com.melih.bookmanager.exception.User.InactiveAccountException;
-import com.melih.bookmanager.exception.User.UsernameAlreadyExistsException;
 import com.melih.bookmanager.repository.book.BookRepository;
 import com.melih.bookmanager.repository.user.UserRepository;
 import com.melih.bookmanager.utils.UserResponse;

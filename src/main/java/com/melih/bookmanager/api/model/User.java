@@ -24,7 +24,7 @@ public class User {
 
     private String role;
 
-    private boolean active;
+    private boolean active = true;
 
     @ManyToMany
     @JoinTable(

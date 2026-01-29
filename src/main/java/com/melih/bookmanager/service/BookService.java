@@ -44,7 +44,9 @@ public class BookService {
 
     @Transactional
     public void addBooksBulk(List<Book> books) {
-        bookRepository.saveAll(books);
+        for(Book book : books) {
+            addBook(book);
+        }
     }
 
     public void removeBook(String isbn) {
@@ -57,7 +59,7 @@ public class BookService {
     @Transactional
     public void removeBooksBulk(List<String> isbnList) {
         for (String isbn : isbnList) {
-            bookRepository.deleteById(isbn);
+            removeBook(isbn);
         }
     }
 

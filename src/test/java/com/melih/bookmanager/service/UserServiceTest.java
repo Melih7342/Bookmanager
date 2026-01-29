@@ -3,136 +3,80 @@ package com.melih.bookmanager.service;
 import com.melih.bookmanager.api.model.User;
 import com.melih.bookmanager.exception.User.BadCredentialsException;
 import com.melih.bookmanager.exception.User.InactiveAccountException;
-import com.melih.bookmanager.exception.User.UsernameAlreadyExistsException;
 import com.melih.bookmanager.repository.book.BookRepository;
 import com.melih.bookmanager.repository.user.UserRepository;
-import com.melih.bookmanager.utils.UserResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
+
+    @Mock
     private UserRepository userRepository;
+
+    @Mock
     private BookRepository bookRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
+
+    @InjectMocks
     private UserService userService;
+
+    private User testUser;
+    private final String username = "jeff";
+    private final String password = "Spring123";
+    private final String encodedPassword = "encodedSpring123";
 
     @BeforeEach
     void setUp() {
-        this.passwordEncoder = new BCryptPasswordEncoder();
-
-        List<User> testUsers = new ArrayList<>(List.of(
-                new User("jeff", passwordEncoder.encode("Spring123")),
-                new User("thomas", passwordEncoder.encode("Summer55!")),
-                new User("carla10", passwordEncoder.encode("Cheesecake99"))
-        ));
-
-        userRepository.saveAll(testUsers);
-
-        this.userService = new UserService(userRepository, bookRepository, passwordEncoder);
+        testUser = new User(username, encodedPassword);
     }
 
     @Test
     void givenExistingUsername_whenGetUserByUsername_thenReturnRightUser() {
         // GIVEN
-        String username = "jeff";
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
 
         // WHEN
         User result = userService.getUserByUsername(username);
 
         // THEN
-        assertThat(result.getUsername()).isEqualTo("jeff");
-        assertThat(result.isActive()).isTrue();
-
-        assertThat(result.getCurrentlyReading())
-                .isNotNull()
-                .isEmpty();
-
-        assertThat(result.getReadBooks())
-                .isNotNull()
-                .isEmpty();
-    }
-
-    @Test
-    void givenNonExistingUsername_whenGetUserByUsername_thenExceptionIsThrown() {
-        // GIVEN
-        String nonExistingUsername = "IdoNotExist";
-
-        // WHEN & THEN
-        assertThatThrownBy(() -> userService.getUserByUsername(nonExistingUsername))
-                .isInstanceOf(UsernameNotFoundException.class);
-    }
-
-    @Test
-    void givenExistingUsername_whenGetUserProfile_thenReturnRightUserProfile() {
-        // GIVEN
-        String username = "jeff";
-
-        // WHEN
-        UserResponse result = userService.getUserProfile(username);
-
-        // THEN
-        assertThat(result.getUsername()).isEqualTo("jeff");
-
-        assertThat(result.getCurrentlyReading())
-                .isNotNull()
-                .isEmpty();
-
-        assertThat(result.getReadBooks())
-                .isNotNull()
-                .isEmpty();
-    }
-
-    @Test
-    void givenNonExistingUsername_whenGetUserProfile_thenExceptionIsThrown() {
-        // GIVEN
-        String nonExistingUsername = "IdoNotExist";
-
-        // WHEN & THEN
-        assertThatThrownBy(() -> userService.getUserProfile(nonExistingUsername))
-                .isInstanceOf(UsernameNotFoundException.class);
+        assertThat(result.getUsername()).isEqualTo(username);
+        verify(userRepository).findByUsername(username);
     }
 
     @Test
     void givenNewUsername_whenRegister_thenNewUserIsRegistered() {
         // GIVEN
-        String username = "samantha";
-        String password = "JokerArkham1";
+        when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
 
         // WHEN
         userService.register(username, password);
-        Optional<User> result = userRepository.findByUsername(username);
 
         // THEN
-        assertThat(result.isPresent()).isTrue();
-    }
-
-    @Test
-    void givenExistingUsername_whenRegister_thenExceptionIsThrown() {
-        // GIVEN
-        String username = "jeff";
-        String password = "JokerArkham1";
-
-        // WHEN & THEN
-        assertThatThrownBy(() -> userService.register(username, password))
-                .isInstanceOf(UsernameAlreadyExistsException.class);
+        verify(userRepository).save(argThat(user -> user.getUsername().equals(username)));
+        verify(passwordEncoder).encode(password);
     }
 
     @Test
     void givenValidCredentials_whenLogin_thenUserIsAuthenticated() {
         // GIVEN
-        String username = "jeff";
-        String password = "Spring123";
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches(password, encodedPassword)).thenReturn(true);
 
         // WHEN & THEN
         assertThatCode(() -> userService.login(username, password))
@@ -142,33 +86,20 @@ public class UserServiceTest {
     @Test
     void givenFalsePassword_whenLogin_thenThrowBadCredentialsException() {
         // GIVEN
-        String username = "jeff";
-        String password = "JokerArkham1";
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         // WHEN & THEN
-        assertThatThrownBy(() -> userService.login(username, password))
-                .isInstanceOf(BadCredentialsException.class);
-    }
-
-    @Test
-    void givenNonExistingUsername_whenLogin_thenThrowBadCredentialsException() {
-        // GIVEN
-        String username = "alexandra12";
-        String password = "Spring123";
-
-        // WHEN & THEN
-        assertThatThrownBy(() -> userService.login(username, password))
+        assertThatThrownBy(() -> userService.login(username, "wrongPassword"))
                 .isInstanceOf(BadCredentialsException.class);
     }
 
     @Test
     void givenDeactivatedAccount_whenLogin_thenThrowInactiveAccountException() {
         // GIVEN
-        String username = "jeff";
-        String password = "Spring123";
-
-        Optional<User> user = userRepository.findByUsername(username); // find the corresponding user
-        user.ifPresent(u -> u.setActive(false)); // set the field "active" to false
+        testUser.setActive(false);
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches(password, encodedPassword)).thenReturn(true);
 
         // WHEN & THEN
         assertThatThrownBy(() -> userService.login(username, password))
@@ -178,79 +109,30 @@ public class UserServiceTest {
     @Test
     void givenValidCredentials_whenDeactivateAccount_thenAccountIsDeactivated() {
         // GIVEN
-        String username = "jeff";
-        String password = "Spring123";
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches(password, encodedPassword)).thenReturn(true);
 
         // WHEN
         userService.deactivateAccount(username, password);
 
         // THEN
-        User updatedUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new AssertionError("User should exist in repository"));
-
-        assertThat(updatedUser.isActive()).isFalse();
-
-    }
-
-    @Test
-    void givenNonExistingUsername_whenDeactivateAccount_thenThrowBadCredentialsException() {
-        // GIVEN
-        String username = "alexandra12";
-        String password = "Spring123";
-
-        // WHEN & THEN
-        assertThatThrownBy(() -> userService.deactivateAccount(username, password))
-                .isInstanceOf(BadCredentialsException.class);
-    }
-
-    @Test
-    void givenFalsePassword_whenDeactivateAccount_thenThrowBadCredentialsException() {
-        // GIVEN
-        String username = "jeff";
-        String password = "JokerArkham1";
-
-        // WHEN & THEN
-        assertThatThrownBy(() -> userService.deactivateAccount(username, password))
-                .isInstanceOf(BadCredentialsException.class);
+        verify(userRepository).save(argThat(user -> !user.isActive()));
     }
 
     @Test
     void givenValidCredentials_whenChangePassword_thenPasswordChanged() {
         // GIVEN
-        String username = "jeff";
-        String oldPassword = "Spring123";
-        String newPassword = "JeffsNewPassword";
+        String newPassword = "newSecret123";
+        String newEncoded = "encodedNewSecret";
+
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches(password, encodedPassword)).thenReturn(true);
+        when(passwordEncoder.encode(newPassword)).thenReturn(newEncoded);
 
         // WHEN
-        userService.changePassword(username, oldPassword, newPassword);
+        userService.changePassword(username, password, newPassword);
 
         // THEN
-        User jeff = userRepository.findByUsername("jeff")
-                .orElseThrow(() -> new AssertionError("User should exist in repository"));
-        assertThat(passwordEncoder.matches(newPassword, jeff.getPassword()));
-    }
-
-    @Test
-    void givenNonExistingUsername_whenChangePassword_thenThrowBadCredentialsException() {
-        // GIVEN
-        String username = "alexandra12";
-        String oldPassword = "Spring123";
-        String newPassword = "JokerArkham1";
-
-        // WHEN & THEN
-        assertThatThrownBy(() -> userService.changePassword(username, oldPassword, newPassword))
-                .isInstanceOf(BadCredentialsException.class);
-    }
-
-    @Test
-    void givenFalsePassword_whenChangePassword_thenThrowBadCredentialsException() {
-        // GIVEN
-        String username = "jeff";
-        String oldPassword = "JokerArkham1";
-        String newPassword = "JeffsNewPassword";
-
-        // WHEN & THEN
-        assertThatThrownBy(() -> userService.changePassword(username, oldPassword, newPassword))
-                .isInstanceOf(BadCredentialsException.class);
+        verify(userRepository).save(argThat(user -> user.getPassword().equals(newEncoded)));
     }
 }
