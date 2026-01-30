@@ -31,6 +31,7 @@ public class BookIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        bookRepository.deleteAll();
         bookRepository.save(new Book("978-3-16-148410-20", "Der Wind am Ende der Welt", "Franz Kafka", 300));
         bookRepository.save(new Book("978-0-545-01022-33", "Das Schweigen der alten Eiche", "Hermann Hesse", 350));
     }
