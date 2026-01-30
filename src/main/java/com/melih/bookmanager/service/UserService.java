@@ -2,8 +2,10 @@ package com.melih.bookmanager.service;
 
 import com.melih.bookmanager.api.model.Book;
 import com.melih.bookmanager.api.model.User;
+import com.melih.bookmanager.exception.Book.BookNotFoundException;
 import com.melih.bookmanager.exception.User.BadCredentialsException;
 import com.melih.bookmanager.exception.User.InactiveAccountException;
+import com.melih.bookmanager.exception.User.UsernameAlreadyExistsException;
 import com.melih.bookmanager.repository.book.BookRepository;
 import com.melih.bookmanager.repository.user.UserRepository;
 import com.melih.bookmanager.utils.UserResponse;
@@ -42,6 +44,9 @@ public class UserService {
 
 
     public void register(String username, String password) {
+        if(userRepository.findByUsername(username).isPresent()) {
+            throw new UsernameAlreadyExistsException();
+        }
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
@@ -54,12 +59,12 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(BadCredentialsException::new);
 
-        if (!user.isActive()) {
-            throw new InactiveAccountException();
-        }
-
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BadCredentialsException();
+        }
+
+        if (!user.isActive()) {
+            throw new InactiveAccountException();
         }
     }
 
@@ -89,9 +94,9 @@ public class UserService {
     @Transactional
     public void markAsRead(String username, String isbn) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         Book book = bookRepository.findById(isbn)
-                .orElseThrow(() -> new RuntimeException("Book not found"));
+                .orElseThrow(() -> new BookNotFoundException("Book not found"));
 
         user.getReadBooks().add(book);
         user.getCurrentlyReading().remove(book);
